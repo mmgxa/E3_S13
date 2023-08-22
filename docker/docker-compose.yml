@@ -1,0 +1,78 @@
+# To build the entire stack run 'make run'
+
+version: '3.7'
+
+# networks:
+#   front-tier:
+#   back-tier:
+#     external: False
+
+services:
+  torchserver:
+    image: emlo:s13
+    shm_size: '1gb'
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+      - "8082:8082"
+      - "7070:7070"
+      - "7071:7071"
+    # networks:
+    #   - back-tier
+    #   # - front-tier
+
+  fastapi:
+    container_name: fastapi
+    restart: unless-stopped
+    depends_on:
+      - torchserver
+    build:
+      context: ./src/fastapi
+      dockerfile: ./Dockerfile
+    ports:
+      - 9080:9080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/health"]
+      interval: 5m
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    # networks:
+    #   - back-tier
+      # - front-tier
+
+  caddy:
+    container_name: caddy
+    restart: unless-stopped
+    build:
+      context: ./src/caddy
+      dockerfile: ./Dockerfile
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - fastapi
+    environment:
+      PROXY_BACKEND: fastapi
+      PROXY_PORT: 9080
+      DOMAIN: ec2.web1.awsuser.cloudns.ph
+    # networks:
+    #   - back-tier
+    #   - front-tier
+
+volumes:
+  caddy_data:
+  caddy_config:

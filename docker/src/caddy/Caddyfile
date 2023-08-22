@@ -1,0 +1,21 @@
+(cors) {
+	@cors_preflight method OPTIONS
+	@cors header Origin *
+
+	handle @cors_preflight {
+		header Access-Control-Allow-Origin "*"
+		header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE"
+		header Access-Control-Allow-Headers "Content-Type"
+		header Access-Control-Max-Age "3600"
+		respond "" 204
+	}
+
+	handle @cors {
+		header Access-Control-Expose-Headers "Link"
+	}
+}
+
+{$DOMAIN} {
+	import cors *
+	reverse_proxy {$PROXY_BACKEND}:{$PROXY_PORT}
+}

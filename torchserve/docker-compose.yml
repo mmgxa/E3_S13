@@ -1,0 +1,39 @@
+version: '3.7'
+
+networks:
+  front-tier:
+  back-tier:
+    external: False
+
+services:
+  torchserver:
+    # build:
+      # context: .
+      # dockerfile: Dockerfile
+    image: emlo:s13
+    shm_size: '1gb'
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    # depends_on:
+    #   - evidently_service
+    #   - mongo
+    # environment:
+    #   EVIDENTLY_SERVICE: "http://evidently_service.:8085"
+    #   MONGODB_ADDRESS: "mongodb://mongo.:27017/"
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+      - "8082:8082"
+      - "7070:7070"
+      - "7071:7071"
+    # networks:
+    #   - back-tier
+    #   - front-tier
